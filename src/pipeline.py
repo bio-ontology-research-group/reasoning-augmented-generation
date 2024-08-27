@@ -25,11 +25,10 @@ def map_classes_and_relations(df, sentence, model):
 
     all_entity_embs = th.tensor(np.vstack(df["embedding"]))
 
-    similarities = model.similarity(sentence_embedding, all_entity_embs)
-        
+    similarities = model.similarity(sentence_embedding, all_entity_embs).squeeze()
     max_idx = th.argmax(similarities).item()
 
-    return df.iloc[max_idx]
+    return df.iloc[max_idx], similarities[max_idx].item()
  
 
 
@@ -63,15 +62,20 @@ sentence = sys.argv[1]
 triple = extract_triple(sentence, pipeline)
 assert triple.startswith("(") and triple.endswith(")"), f"Invalid triple: {triple}"
 print(f"The extracted triple is: {triple}")
+triple = triple[1:-1]
 relation = triple.split(",")[1]
 object_ = triple.split(",")[2]
 
-class_name = map_classes_and_relations(class_df, object_, matching_model)
-role_name = map_classes_and_relations(role_df, relation, matching_model)
+class_name, score = map_classes_and_relations(class_df, object_, matching_model)
+role_name, score = map_classes_and_relations(role_df, relation, matching_model)
 
 class_label = class_name["label"]
 role_label = role_name["label"]
 
+print()
+print(f"Detected role: {relation} -> {role_label}")
+print(f"Detected class: {object_} -> {class_label}")
+print()
 print(f"OWL sentence: {role_label} some {class_label}")
 
 
